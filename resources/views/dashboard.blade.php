@@ -17,6 +17,15 @@
             <div class="hero-stats">
                 <article>
                     <p>Total Blast Hari Ini</p>
+                    <strong id="stat-total-blast">-</strong>
+                </article>
+                <article>
+                    <p>Berhasil</p>
+                    <strong id="stat-success">-</strong>
+                </article>
+                <article>
+                    <p>Gagal</p>
+                    <strong id="stat-failed">-</strong>
                     <strong>12</strong>
                 </article>
                 <article>
@@ -91,6 +100,31 @@
                     <strong>Belum ada pengecekan</strong>
                 </div>
             </article>
+
+            <article class="card card-wide">
+                <h2>Riwayat Blast (Realtime)</h2>
+                <p class="muted">Auto refresh tiap 15 detik untuk melihat progres blast terbaru.</p>
+                <div class="table-wrap">
+                    <table class="history-table" id="blast-history-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Requested By</th>
+                                <th>Waktu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7">Belum ada data.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
         </section>
     </main>
 
@@ -124,7 +158,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify({
                         product_id: productId,
@@ -141,6 +175,7 @@
 
                 feedback.className = 'result-box success';
                 feedback.innerHTML = `<p>Status:</p><strong>${result.message} (Job ID: ${result.blast_job_id})</strong>`;
+                await loadBlastHistory();
             } catch (error) {
                 feedback.className = 'result-box error';
                 feedback.innerHTML = `<p>Status:</p><strong>${error.message}</strong>`;
@@ -169,7 +204,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify({ number: raw, source }),
                 });
@@ -189,6 +224,54 @@
                 numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>${error.message}</strong>`;
             }
         });
+
+        async function loadBlastHistory() {
+            const tableBody = document.querySelector('#blast-history-table tbody');
+
+            try {
+                const response = await fetch('/api/blast/jobs', {
+                    headers: { Accept: 'application/json' },
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Gagal mengambil riwayat blast.');
+                }
+
+                const items = result.items || [];
+
+                document.getElementById('stat-total-blast').textContent = items.length;
+                document.getElementById('stat-success').textContent = items.filter((item) => item.status === 'DONE').length;
+                document.getElementById('stat-failed').textContent = items.filter((item) => item.status === 'FAILED').length;
+
+                if (items.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="7">Belum ada data.</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = items
+                    .map((item) => {
+                        const progress = `${item.success_groups}/${item.total_groups} success, ${item.failed_groups} failed`;
+                        return `
+                            <tr>
+                                <td>#${item.id}</td>
+                                <td>${item.product_id}</td>
+                                <td>${item.category}</td>
+                                <td><span class="badge badge-${String(item.status).toLowerCase()}">${item.status}</span></td>
+                                <td>${progress}</td>
+                                <td>${item.requested_by || '-'}</td>
+                                <td>${item.created_at || '-'}</td>
+                            </tr>
+                        `;
+                    })
+                    .join('');
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
+            }
+        }
+
+        loadBlastHistory();
+        setInterval(loadBlastHistory, 15000);
     </script>
 </body>
 </html>

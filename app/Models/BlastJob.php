@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class BlastJob extends Model
 {
@@ -26,4 +27,9 @@ class BlastJob extends Model
     protected $casts = [
         'payload_json' => 'array',
     ];
+
+    public function details(): HasMany
+    {
+        return $this->hasMany(BlastJobDetail::class);
+    }
 }
