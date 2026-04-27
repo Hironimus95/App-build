@@ -26,6 +26,15 @@
                 <article>
                     <p>Gagal</p>
                     <strong id="stat-failed">-</strong>
+                    <strong>12</strong>
+                </article>
+                <article>
+                    <p>Group Aktif</p>
+                    <strong>28</strong>
+                </article>
+                <article>
+                    <p>Success Rate</p>
+                    <strong>97%</strong>
                 </article>
             </div>
         </header>
