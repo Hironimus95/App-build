@@ -17,6 +17,15 @@
             <div class="hero-stats">
                 <article>
                     <p>Total Blast Hari Ini</p>
+                    <strong id="stat-total-blast">-</strong>
+                </article>
+                <article>
+                    <p>Berhasil</p>
+                    <strong id="stat-success">-</strong>
+                </article>
+                <article>
+                    <p>Gagal</p>
+                    <strong id="stat-failed">-</strong>
                     <strong>12</strong>
                 </article>
                 <article>
@@ -70,7 +79,7 @@
 
             <article class="card">
                 <h2>Number Checker</h2>
-
+                <p class="muted">Validasi nomor kini terhubung ke API checker per sumber data.</p>
                 <form class="form" id="number-form" onsubmit="return false;">
                     <label>
                         Nomor Telepon
@@ -78,6 +87,10 @@
                     </label>
                     <label>
                         Sumber Data
+                        <select id="source_select">
+                            <option value="main_db">Main DB</option>
+                            <option value="legacy_crm">Legacy CRM</option>
+                            <option value="data_warehouse">Data Warehouse</option>
                         </select>
                     </label>
                     <button type="button" class="secondary" id="check-number-btn">Cek Nomor</button>
@@ -85,6 +98,31 @@
                 <div class="result-box" id="number-feedback">
                     <p>Status terakhir:</p>
                     <strong>Belum ada pengecekan</strong>
+                </div>
+            </article>
+
+            <article class="card card-wide">
+                <h2>Riwayat Blast (Realtime)</h2>
+                <p class="muted">Auto refresh tiap 15 detik untuk melihat progres blast terbaru.</p>
+                <div class="table-wrap">
+                    <table class="history-table" id="blast-history-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th>Progress</th>
+                                <th>Requested By</th>
+                                <th>Waktu</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7">Belum ada data.</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </article>
         </section>
@@ -120,7 +158,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json',
+                        Accept: 'application/json',
                     },
                     body: JSON.stringify({
                         product_id: productId,
@@ -137,6 +175,7 @@
 
                 feedback.className = 'result-box success';
                 feedback.innerHTML = `<p>Status:</p><strong>${result.message} (Job ID: ${result.blast_job_id})</strong>`;
+                await loadBlastHistory();
             } catch (error) {
                 feedback.className = 'result-box error';
                 feedback.innerHTML = `<p>Status:</p><strong>${error.message}</strong>`;
@@ -147,8 +186,92 @@
         });
 
         const numberFeedback = document.getElementById('number-feedback');
+        document.getElementById('check-number-btn').addEventListener('click', async () => {
+            const raw = document.getElementById('phone_input').value;
+            const source = document.getElementById('source_select').value;
 
+            if (!raw.trim()) {
+                numberFeedback.className = 'result-box error';
+                numberFeedback.innerHTML = '<p>Status terakhir:</p><strong>Nomor telepon wajib diisi.</strong>';
+                return;
+            }
+
+            numberFeedback.className = 'result-box';
+            numberFeedback.innerHTML = '<p>Status terakhir:</p><strong>Mengecek nomor...</strong>';
+
+            try {
+                const response = await fetch('/api/number/check', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Accept: 'application/json',
+                    },
+                    body: JSON.stringify({ number: raw, source }),
+                });
+
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || 'Pengecekan gagal.');
+                }
+
+                const sourceName = result.sources?.[0]?.source_db ?? '-';
+                const exists = result.sources?.[0]?.exists ? 'Ya' : 'Tidak';
+
+                numberFeedback.className = 'result-box success';
+                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>Normalized: ${result.normalized_number} | Source: ${sourceName} | Ada: ${exists}</strong>`;
+            } catch (error) {
+                numberFeedback.className = 'result-box error';
+                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>${error.message}</strong>`;
+            }
         });
+
+        async function loadBlastHistory() {
+            const tableBody = document.querySelector('#blast-history-table tbody');
+
+            try {
+                const response = await fetch('/api/blast/jobs', {
+                    headers: { Accept: 'application/json' },
+                });
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || 'Gagal mengambil riwayat blast.');
+                }
+
+                const items = result.items || [];
+
+                document.getElementById('stat-total-blast').textContent = items.length;
+                document.getElementById('stat-success').textContent = items.filter((item) => item.status === 'DONE').length;
+                document.getElementById('stat-failed').textContent = items.filter((item) => item.status === 'FAILED').length;
+
+                if (items.length === 0) {
+                    tableBody.innerHTML = '<tr><td colspan="7">Belum ada data.</td></tr>';
+                    return;
+                }
+
+                tableBody.innerHTML = items
+                    .map((item) => {
+                        const progress = `${item.success_groups}/${item.total_groups} success, ${item.failed_groups} failed`;
+                        return `
+                            <tr>
+                                <td>#${item.id}</td>
+                                <td>${item.product_id}</td>
+                                <td>${item.category}</td>
+                                <td><span class="badge badge-${String(item.status).toLowerCase()}">${item.status}</span></td>
+                                <td>${progress}</td>
+                                <td>${item.requested_by || '-'}</td>
+                                <td>${item.created_at || '-'}</td>
+                            </tr>
+                        `;
+                    })
+                    .join('');
+            } catch (error) {
+                tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
+            }
+        }
+
+        loadBlastHistory();
+        setInterval(loadBlastHistory, 15000);
     </script>
 </body>
 </html>
