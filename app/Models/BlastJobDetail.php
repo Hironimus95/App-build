@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class BlastJobDetail extends Model
 {
@@ -26,4 +27,9 @@ class BlastJobDetail extends Model
     protected $casts = [
         'sent_at' => 'datetime',
     ];
+
+    public function blastJob(): BelongsTo
+    {
+        return $this->belongsTo(BlastJob::class);
+    }
 }

@@ -35,7 +35,7 @@ class BlastService
                     'status' => BlastJobDetail::STATUS_QUEUED,
                 ]);
 
-                SendBlastToGroupJob::dispatch($detail->id, $group->chat_id, $message);
+                SendBlastToGroupJob::dispatch($detail->id, $group->chat_id, $message)->afterCommit();
             }
 
             return $blastJob;
