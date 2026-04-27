@@ -238,6 +238,7 @@ Jika Anda mau, langkah berikutnya saya bisa bantu buatkan:
 - struktur model & relation Eloquent,
 - skeleton service + job Laravel,
 - dan endpoint API pertama untuk trigger blast.
+<<<<<<< HEAD
 
 ## 12) Progress Implementasi (Update)
 
@@ -257,3 +258,5 @@ Skeleton kode awal sudah ditambahkan untuk mempercepat development:
   - `POST /api/blast/send`
 
 > Skeleton ini adalah baseline dan masih perlu disesuaikan dengan proyek Laravel final (auth, policies, retry strategy detail, observability, dan endpoint Green API sesuai akun Anda).
+=======
+>>>>>>> main
