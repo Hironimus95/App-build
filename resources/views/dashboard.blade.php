@@ -26,15 +26,6 @@
                 <article>
                     <p>Gagal</p>
                     <strong id="stat-failed">-</strong>
-                    <strong>12</strong>
-                </article>
-                <article>
-                    <p>Group Aktif</p>
-                    <strong>28</strong>
-                </article>
-                <article>
-                    <p>Success Rate</p>
-                    <strong>97%</strong>
                 </article>
             </div>
         </header>
@@ -104,6 +95,24 @@
             <article class="card card-wide">
                 <h2>Riwayat Blast (Realtime)</h2>
                 <p class="muted">Auto refresh tiap 15 detik untuk melihat progres blast terbaru.</p>
+                <div class="history-toolbar">
+                    <label>
+                        Filter Status
+                        <select id="history_status_filter">
+                            <option value="">Semua</option>
+                            <option value="QUEUED">QUEUED</option>
+                            <option value="RUNNING">RUNNING</option>
+                            <option value="DONE">DONE</option>
+                            <option value="FAILED">FAILED</option>
+                            <option value="PARTIAL">PARTIAL</option>
+                        </select>
+                    </label>
+                    <label>
+                        Limit
+                        <input id="history_limit_filter" type="number" min="1" max="100" value="20">
+                    </label>
+                    <button type="button" class="secondary" id="history-refresh-btn">Refresh</button>
+                </div>
                 <div class="table-wrap">
                     <table class="history-table" id="blast-history-table">
                         <thead>
@@ -227,9 +236,19 @@
 
         async function loadBlastHistory() {
             const tableBody = document.querySelector('#blast-history-table tbody');
+            const statusFilter = document.getElementById('history_status_filter').value;
+            const limitFilter = document.getElementById('history_limit_filter').value;
 
             try {
-                const response = await fetch('/api/blast/jobs', {
+                const params = new URLSearchParams();
+                if (statusFilter) {
+                    params.set('status', statusFilter);
+                }
+                if (limitFilter) {
+                    params.set('limit', limitFilter);
+                }
+
+                const response = await fetch(`/api/blast/jobs?${params.toString()}`, {
                     headers: { Accept: 'application/json' },
                 });
                 const result = await response.json();
@@ -252,13 +271,19 @@
                 tableBody.innerHTML = items
                     .map((item) => {
                         const progress = `${item.success_groups}/${item.total_groups} success, ${item.failed_groups} failed`;
+                        const progressPercent = Number(item.progress_percent || 0);
                         return `
                             <tr>
                                 <td>#${item.id}</td>
                                 <td>${item.product_id}</td>
                                 <td>${item.category}</td>
                                 <td><span class="badge badge-${String(item.status).toLowerCase()}">${item.status}</span></td>
-                                <td>${progress}</td>
+                                <td>
+                                    <div class="progress-wrap">
+                                        <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                                    </div>
+                                    <small>${progress} (${progressPercent}%)</small>
+                                </td>
                                 <td>${item.requested_by || '-'}</td>
                                 <td>${item.created_at || '-'}</td>
                             </tr>
@@ -269,6 +294,9 @@
                 tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
             }
         }
+
+        document.getElementById('history-refresh-btn').addEventListener('click', loadBlastHistory);
+        document.getElementById('history_status_filter').addEventListener('change', loadBlastHistory);
 
         loadBlastHistory();
         setInterval(loadBlastHistory, 15000);

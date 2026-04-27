@@ -162,3 +162,99 @@ button:disabled {
     background: #fef2f2;
 }
 
+.card-wide {
+    grid-column: 1 / -1;
+}
+
+.table-wrap {
+    margin-top: 12px;
+    overflow-x: auto;
+}
+
+.history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.history-table th,
+.history-table td {
+    border-bottom: 1px solid var(--blue-100);
+    padding: 10px 8px;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.history-table th {
+    color: var(--blue-700);
+    font-weight: 700;
+    background: var(--blue-50);
+}
+
+.badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.badge-done {
+    color: #166534;
+    background: #dcfce7;
+}
+
+.badge-failed {
+    color: #991b1b;
+    background: #fee2e2;
+}
+
+.badge-running {
+    color: #92400e;
+    background: #fef3c7;
+}
+
+.badge-queued,
+.badge-partial {
+    color: var(--blue-700);
+    background: var(--blue-100);
+}
+
+.history-toolbar {
+    margin-top: 10px;
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 10px;
+    align-items: end;
+}
+
+.history-toolbar label {
+    margin: 0;
+}
+
+.progress-wrap {
+    width: 180px;
+    max-width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--blue-100);
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--blue-600), var(--blue-700));
+    border-radius: 999px;
+}
+
+@media (max-width: 900px) {
+    .history-toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .progress-wrap {
+        width: 100%;
+    }
+}

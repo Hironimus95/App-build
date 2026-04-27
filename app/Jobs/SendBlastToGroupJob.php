@@ -57,11 +57,20 @@ class SendBlastToGroupJob implements ShouldQueue
 
     private function syncBlastJobStatus(int $blastJobId): void
     {
-        $total = BlastJobDetail::query()->where('blast_job_id', $blastJobId)->count();
-        $queued = BlastJobDetail::query()->where('blast_job_id', $blastJobId)->where('status', BlastJobDetail::STATUS_QUEUED)->count();
-        $running = BlastJobDetail::query()->where('blast_job_id', $blastJobId)->where('status', BlastJobDetail::STATUS_RUNNING)->count();
-        $success = BlastJobDetail::query()->where('blast_job_id', $blastJobId)->where('status', BlastJobDetail::STATUS_SUCCESS)->count();
-        $failed = BlastJobDetail::query()->where('blast_job_id', $blastJobId)->where('status', BlastJobDetail::STATUS_FAILED)->count();
+        $summary = BlastJobDetail::query()
+            ->where('blast_job_id', $blastJobId)
+            ->selectRaw('COUNT(*) as total')
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as queued_count', [BlastJobDetail::STATUS_QUEUED])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as running_count', [BlastJobDetail::STATUS_RUNNING])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as success_count', [BlastJobDetail::STATUS_SUCCESS])
+            ->selectRaw('SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as failed_count', [BlastJobDetail::STATUS_FAILED])
+            ->first();
+
+        $total = (int) ($summary->total ?? 0);
+        $queued = (int) ($summary->queued_count ?? 0);
+        $running = (int) ($summary->running_count ?? 0);
+        $success = (int) ($summary->success_count ?? 0);
+        $failed = (int) ($summary->failed_count ?? 0);
 
         if ($total === 0 || $queued === $total) {
             $status = BlastJob::STATUS_QUEUED;
