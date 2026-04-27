@@ -70,7 +70,7 @@
 
             <article class="card">
                 <h2>Number Checker</h2>
-                <p class="muted">Mock UX untuk validasi nomor. Integrasi endpoint bisa dilanjutkan pada iterasi berikutnya.</p>
+
                 <form class="form" id="number-form" onsubmit="return false;">
                     <label>
                         Nomor Telepon
@@ -78,10 +78,6 @@
                     </label>
                     <label>
                         Sumber Data
-                        <select>
-                            <option>Main DB</option>
-                            <option>Legacy CRM</option>
-                            <option>Data Warehouse</option>
                         </select>
                     </label>
                     <button type="button" class="secondary" id="check-number-btn">Cek Nomor</button>
@@ -151,11 +147,7 @@
         });
 
         const numberFeedback = document.getElementById('number-feedback');
-        document.getElementById('check-number-btn').addEventListener('click', () => {
-            const raw = document.getElementById('phone_input').value;
-            const normalized = raw.replace(/\D/g, '');
-            numberFeedback.className = 'result-box';
-            numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>Preview normalized: ${normalized || '-'}</strong>`;
+
         });
     </script>
 </body>
