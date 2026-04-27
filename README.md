@@ -257,3 +257,28 @@ Skeleton kode awal sudah ditambahkan untuk mempercepat development:
   - `POST /api/blast/send`
 
 > Skeleton ini adalah baseline dan masih perlu disesuaikan dengan proyek Laravel final (auth, policies, retry strategy detail, observability, dan endpoint Green API sesuai akun Anda).
+
+## 13) Troubleshooting GitHub PR (Branch Invalid/Deleted)
+
+Jika muncul pesan **"Branch is either deleted or invalid"** saat follow-up PR, lakukan langkah berikut:
+
+1. Buat branch baru dari commit terbaru yang valid.
+2. Cherry-pick commit perbaikan yang belum masuk ke branch aktif.
+3. Push branch baru ke remote.
+4. Buka PR baru yang menyebutkan PR sebelumnya sebagai konteks.
+5. Cantumkan ringkasan perubahan incremental agar reviewer mudah membandingkan.
+
+Contoh alur command:
+
+```bash
+git checkout -b fix/pr-followup-v2
+git cherry-pick <commit_hash_perbaikan>
+git push -u origin fix/pr-followup-v2
+```
+
+Checklist sebelum buka PR baru:
+
+- Pastikan branch source ada di remote.
+- Pastikan tidak ada konflik unresolved.
+- Pastikan deskripsi PR hanya mencakup perubahan incremental (bukan mengulang seluruh histori).
+- Sertakan bukti verifikasi minimal (lint/smoke/manual check).
