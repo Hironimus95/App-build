@@ -59,7 +59,10 @@
                         <textarea id="payload_json" rows="6" required placeholder='{"title":"Maintenance Notice","message":"Sistem maintenance jam 21:00"}'></textarea>
                     </label>
 
-                    <button type="submit" id="submit-btn">Dispatch Blast</button>
+                    <div class="form-actions">
+                        <button type="button" class="secondary" id="format-json-btn">Format JSON</button>
+                        <button type="submit" id="submit-btn">Dispatch Blast</button>
+                    </div>
                 </form>
 
                 <div id="blast-feedback" class="result-box" aria-live="polite">
@@ -113,7 +116,7 @@
                     </label>
                     <button type="button" class="secondary" id="history-refresh-btn">Refresh</button>
                 </div>
-                <div class="table-wrap">
+                <div class="table-wrap" id="history-region" aria-live="polite">
                     <table class="history-table" id="blast-history-table">
                         <thead>
                             <tr>
@@ -137,10 +140,45 @@
         </section>
     </main>
 
+    <div id="toast" class="toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
     <script>
         const blastForm = document.getElementById('blast-form');
         const feedback = document.getElementById('blast-feedback');
         const submitBtn = document.getElementById('submit-btn');
+
+
+        function escapeHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.className = `toast show ${type}`;
+            toast.textContent = message;
+
+            clearTimeout(showToast.timer);
+            showToast.timer = setTimeout(() => {
+                toast.className = 'toast';
+            }, 3000);
+        }
+
+        function renderHistorySkeleton() {
+            const tableBody = document.querySelector('#blast-history-table tbody');
+            tableBody.innerHTML = Array.from({ length: 4 })
+                .map(() => `
+                    <tr>
+                        <td colspan="7"><div class="skeleton-line"></div></td>
+                    </tr>
+                `)
+                .join('');
+        }
 
         blastForm.addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -160,6 +198,7 @@
             }
 
             submitBtn.disabled = true;
+            submitBtn.setAttribute('aria-busy', 'true');
             submitBtn.textContent = 'Mengirim...';
 
             try {
@@ -183,13 +222,16 @@
                 }
 
                 feedback.className = 'result-box success';
-                feedback.innerHTML = `<p>Status:</p><strong>${result.message} (Job ID: ${result.blast_job_id})</strong>`;
+                feedback.innerHTML = `<p>Status:</p><strong>${escapeHtml(result.message)} (Job ID: ${escapeHtml(result.blast_job_id)})</strong>`;
+                showToast('Blast berhasil di-queue.', 'success');
                 await loadBlastHistory();
             } catch (error) {
                 feedback.className = 'result-box error';
-                feedback.innerHTML = `<p>Status:</p><strong>${error.message}</strong>`;
+                feedback.innerHTML = `<p>Status:</p><strong>${escapeHtml(error.message)}</strong>`;
+                showToast('Blast gagal diproses.', 'error');
             } finally {
                 submitBtn.disabled = false;
+                submitBtn.removeAttribute('aria-busy');
                 submitBtn.textContent = 'Dispatch Blast';
             }
         });
@@ -227,17 +269,36 @@
                 const exists = result.sources?.[0]?.exists ? 'Ya' : 'Tidak';
 
                 numberFeedback.className = 'result-box success';
-                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>Normalized: ${result.normalized_number} | Source: ${sourceName} | Ada: ${exists}</strong>`;
+                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>Normalized: ${escapeHtml(result.normalized_number)} | Source: ${escapeHtml(sourceName)} | Ada: ${escapeHtml(exists)}</strong>`;
+                showToast('Number checker selesai.', 'success');
             } catch (error) {
                 numberFeedback.className = 'result-box error';
-                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>${error.message}</strong>`;
+                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>${escapeHtml(error.message)}</strong>`;
+                showToast('Number checker gagal.', 'error');
+            }
+        });
+
+
+        document.getElementById('format-json-btn').addEventListener('click', () => {
+            const payloadElement = document.getElementById('payload_json');
+
+            try {
+                const parsed = JSON.parse(payloadElement.value || '{}');
+                payloadElement.value = JSON.stringify(parsed, null, 2);
+                showToast('Payload JSON berhasil dirapikan.', 'success');
+            } catch (error) {
+                showToast('Payload JSON belum valid, tidak bisa diformat.', 'error');
             }
         });
 
         async function loadBlastHistory() {
             const tableBody = document.querySelector('#blast-history-table tbody');
+            const historyRegion = document.getElementById('history-region');
             const statusFilter = document.getElementById('history_status_filter').value;
             const limitFilter = document.getElementById('history_limit_filter').value;
+
+            renderHistorySkeleton();
+            historyRegion.setAttribute('aria-busy', 'true');
 
             try {
                 const params = new URLSearchParams();
@@ -274,24 +335,27 @@
                         const progressPercent = Number(item.progress_percent || 0);
                         return `
                             <tr>
-                                <td>#${item.id}</td>
-                                <td>${item.product_id}</td>
-                                <td>${item.category}</td>
-                                <td><span class="badge badge-${String(item.status).toLowerCase()}">${item.status}</span></td>
+                                <td>#${escapeHtml(item.id)}</td>
+                                <td>${escapeHtml(item.product_id)}</td>
+                                <td>${escapeHtml(item.category)}</td>
+                                <td><span class="badge badge-${String(item.status).toLowerCase()}">${escapeHtml(item.status)}</span></td>
                                 <td>
                                     <div class="progress-wrap">
                                         <div class="progress-bar" style="width: ${progressPercent}%"></div>
                                     </div>
-                                    <small>${progress} (${progressPercent}%)</small>
+                                    <small>${escapeHtml(progress)} (${escapeHtml(progressPercent)}%)</small>
                                 </td>
-                                <td>${item.requested_by || '-'}</td>
-                                <td>${item.created_at || '-'}</td>
+                                <td>${escapeHtml(item.requested_by || '-')}</td>
+                                <td>${escapeHtml(item.created_at || '-')}</td>
                             </tr>
                         `;
                     })
                     .join('');
             } catch (error) {
-                tableBody.innerHTML = `<tr><td colspan="7">${error.message}</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="7">${escapeHtml(error.message)}</td></tr>`;
+                showToast('Gagal mengambil riwayat blast.', 'error');
+            } finally {
+                historyRegion.removeAttribute('aria-busy');
             }
         }
 
