@@ -70,7 +70,7 @@
 
             <article class="card">
                 <h2>Number Checker</h2>
-                <p class="muted">Validasi nomor kini terhubung ke API checker per sumber data.</p>
+
                 <form class="form" id="number-form" onsubmit="return false;">
                     <label>
                         Nomor Telepon
@@ -78,10 +78,6 @@
                     </label>
                     <label>
                         Sumber Data
-                        <select id="source_select">
-                            <option value="main_db">Main DB</option>
-                            <option value="legacy_crm">Legacy CRM</option>
-                            <option value="data_warehouse">Data Warehouse</option>
                         </select>
                     </label>
                     <button type="button" class="secondary" id="check-number-btn">Cek Nomor</button>
@@ -151,43 +147,7 @@
         });
 
         const numberFeedback = document.getElementById('number-feedback');
-        document.getElementById('check-number-btn').addEventListener('click', async () => {
-            const raw = document.getElementById('phone_input').value;
-            const source = document.getElementById('source_select').value;
 
-            if (!raw.trim()) {
-                numberFeedback.className = 'result-box error';
-                numberFeedback.innerHTML = '<p>Status terakhir:</p><strong>Nomor telepon wajib diisi.</strong>';
-                return;
-            }
-
-            numberFeedback.className = 'result-box';
-            numberFeedback.innerHTML = '<p>Status terakhir:</p><strong>Mengecek nomor...</strong>';
-
-            try {
-                const response = await fetch('/api/number/check', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({ number: raw, source }),
-                });
-
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.message || 'Pengecekan gagal.');
-                }
-
-                const sourceName = result.sources?.[0]?.source_db ?? '-';
-                const exists = result.sources?.[0]?.exists ? 'Ya' : 'Tidak';
-
-                numberFeedback.className = 'result-box success';
-                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>Normalized: ${result.normalized_number} | Source: ${sourceName} | Ada: ${exists}</strong>`;
-            } catch (error) {
-                numberFeedback.className = 'result-box error';
-                numberFeedback.innerHTML = `<p>Status terakhir:</p><strong>${error.message}</strong>`;
-            }
         });
     </script>
 </body>
